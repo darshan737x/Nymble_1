@@ -1,0 +1,70 @@
+#include <EEPROM.h>
+#define BAUD_RATE 2400
+#define PART_SIZE 64// each part size to be transmitted is 64
+#define TEXT_SIZE 1100 // GIVEN in the doc
+
+char text[TEXT_SIZE]="Finance Minister Arun Jaitley Tuesday hit out at former RBI governor Raghuram Rajan for predicting that the next banking crisis would be triggered by MSME lending, saying postmortem is easier than taking action when it was required. Rajan, who had as the chief economist at IMF warned of impending financial crisis of 2008, in a note to a parliamentary committee warned against ambitious credit targets and loan waivers, saying that they could be the sources of next banking crisis. Government should focus on sources of the next crisis, not just the last one.In particular, government should refrain from setting ambitious credit targets or waiving loans. Credit targets are sometimes achieved by abandoning appropriate due diligence, creating the environment for future NPAs, Rajan said in the note. Both MUDRA loans as well as the Kisan Credit Card, while popular, have to be examined more closely for potential credit risk. Rajan, who was RBI governor for three years till September 2016, is currently.";
+
+//FUNCTION TO CALCULATE SPEED
+unsigned long calSpeed(unsigned long startTime,unsigned long endTime,int dataSize)
+{
+  unsigned long period=endTime-startTime;
+  float bitsTransmitted=(float)dataSize*10;// this is because each character is 10 bits , 8 bits data +1 start and 1 stop bit
+  float speed=(bitsTransmitted*1000)/period;
+  return speed; //returning speed
+}
+
+void setup()
+{
+  Serial.begin(BAUD_RATE);
+}
+
+void loop()
+{
+  for(int i=0;i<TEXT_SIZE;i+=PART_SIZE)
+  {
+    unsigned long startTime, stopTime;
+
+    for(int j=0;j<PART_SIZE && i+j<TEXT_SIZE;j++)
+    {
+      char data=text[i+j];
+      EEPROM.write( i+j , data);//storing the data in EEPROM
+      startTime=millis();//start time 
+
+      Serial.write(data);
+      Serial.flush();
+      stopTime=millis();//endtime aka stop time
+
+      //calulate and print the transmission speed
+      Serial.print("Transmission Speed(pc to mcu): ");
+      Serial.print(calSpeed(startTime,stopTime,1));
+      Serial.print(" bits/second");
+   
+    }
+  }
+
+  //Transmitting from MCU TO PC
+  for(int i=0;i<TEXT_SIZE;i++)
+  {
+    unsigned long startTime,endTime;
+
+    char data1=EEPROM.read(i);//reading data from EEPROM
+    startTime=millis();
+    Serial.write(data1);
+    Serial.flush();
+    endTime=millis();
+
+    //calculating tansmission speed
+    Serial.print("Transmission Speed is (MCU TO PC): ");
+    Serial.print(calSpeed(startTime,endTime,1));
+    Serial.print(" bits/second");
+    //small delay to print
+    delay(1);
+    
+  }
+  Serial.print("Transmission Complete");
+  while(true) //endless or inf loop
+  {
+  }
+  
+}
